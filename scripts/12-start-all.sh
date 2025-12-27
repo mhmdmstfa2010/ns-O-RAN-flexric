@@ -3,8 +3,9 @@
 
 set -e
 
-PROJECT_DIR="/home/mhmd/Documents/o-ran/ns-O-RAN-flexric"
-SCRIPT_DIR="$PROJECT_DIR/scripts"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+FLEXRIC_DIR="$(dirname "$PROJECT_DIR")/flexric"
 
 echo "=========================================="
 echo "Starting ns-O-RAN-flexric System"
@@ -15,8 +16,9 @@ echo ""
 echo "Checking system components..."
 
 # Check FlexRIC
-if [ ! -f "/home/mhmd/Documents/o-ran/flexric/build/examples/ric/nearRT-RIC" ]; then
-    echo "✗ Error: FlexRIC not found. Please run 02-install-flexric.sh first"
+if [ ! -f "$FLEXRIC_DIR/build/examples/ric/nearRT-RIC" ]; then
+    echo "✗ Error: FlexRIC not found at $FLEXRIC_DIR"
+    echo "Please run 02-install-flexric.sh first"
     exit 1
 fi
 echo "✓ FlexRIC ready"

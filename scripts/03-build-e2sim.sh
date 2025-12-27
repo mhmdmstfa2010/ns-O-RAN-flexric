@@ -3,7 +3,8 @@
 
 set -e
 
-PROJECT_DIR="/home/mhmd/Documents/o-ran/ns-O-RAN-flexric"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 E2SIM_DIR="$PROJECT_DIR/e2sim-kpmv3/e2sim"
 
 echo "=========================================="

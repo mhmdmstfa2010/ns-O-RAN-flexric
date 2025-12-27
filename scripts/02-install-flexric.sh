@@ -3,7 +3,9 @@
 
 set -e
 
-FLEXRIC_DIR="/home/mhmd/Documents/o-ran/flexric"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+FLEXRIC_DIR="$(dirname "$PROJECT_DIR")/flexric"
 
 echo "=========================================="
 echo "Installing FlexRIC"
@@ -25,7 +27,9 @@ fi
 
 # Clone FlexRIC
 echo "Cloning FlexRIC from GitLab..."
-cd /home/mhmd/Documents/o-ran
+FLEXRIC_PARENT="$(dirname "$FLEXRIC_DIR")"
+mkdir -p "$FLEXRIC_PARENT"
+cd "$FLEXRIC_PARENT"
 git clone https://gitlab.eurecom.fr/mosaic5g/flexric.git
 cd flexric
 

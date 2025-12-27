@@ -3,7 +3,9 @@
 
 set -e
 
-FLEXRIC_DIR="/home/mhmd/Documents/o-ran/flexric"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+FLEXRIC_DIR="$(dirname "$PROJECT_DIR")/flexric"
 RIC_BINARY="$FLEXRIC_DIR/build/examples/ric/nearRT-RIC"
 
 echo "=========================================="
