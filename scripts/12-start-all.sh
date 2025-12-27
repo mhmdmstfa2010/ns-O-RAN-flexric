@@ -23,12 +23,28 @@ if [ ! -f "$FLEXRIC_DIR/build/examples/ric/nearRT-RIC" ]; then
 fi
 echo "✓ FlexRIC ready"
 
+# Check e2sim directory exists
+if [ ! -d "$PROJECT_DIR/e2sim-kpmv3" ]; then
+    echo "✗ Error: e2sim-kpmv3 directory not found"
+    echo "This is a git submodule. Please run:"
+    echo "  cd $PROJECT_DIR && git submodule update --init --recursive"
+    exit 1
+fi
+
 # Check e2sim
 if [ ! -f "$PROJECT_DIR/e2sim-kpmv3/e2sim/build/e2sim-dev_1.0.0_amd64.deb" ]; then
     echo "✗ Error: e2sim not built. Please run 03-build-e2sim.sh first"
     exit 1
 fi
 echo "✓ e2sim ready"
+
+# Check ns-3 directory exists
+if [ ! -d "$PROJECT_DIR/mmwave-LENA-oran" ]; then
+    echo "✗ Error: mmwave-LENA-oran directory not found"
+    echo "This is a git submodule. Please run:"
+    echo "  cd $PROJECT_DIR && git submodule update --init --recursive"
+    exit 1
+fi
 
 # Check ns-3
 cd "$PROJECT_DIR/mmwave-LENA-oran"

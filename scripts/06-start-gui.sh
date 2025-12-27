@@ -12,6 +12,28 @@ echo "=========================================="
 echo "Starting RIC-TaaP Studio GUI"
 echo "=========================================="
 
+# Check if mmwave-LENA-oran directory exists
+if [ ! -d "$NS3_DIR" ]; then
+    echo "✗ Error: mmwave-LENA-oran directory not found at $NS3_DIR"
+    echo ""
+    echo "This is a git submodule. Please run:"
+    echo "  cd $PROJECT_DIR"
+    echo "  git submodule update --init --recursive"
+    echo ""
+    exit 1
+fi
+
+# Check if GUI directory exists
+if [ ! -d "$GUI_DIR" ]; then
+    echo "✗ Error: GUI directory not found at $GUI_DIR"
+    echo ""
+    echo "Please ensure the git submodule is properly initialized:"
+    echo "  cd $PROJECT_DIR"
+    echo "  git submodule update --init --recursive"
+    echo ""
+    exit 1
+fi
+
 # Get the host IP address
 HOST_IP=$(hostname -I | awk '{print $1}')
 echo "Detected host IP: $HOST_IP"

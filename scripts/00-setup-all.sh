@@ -10,6 +10,17 @@ echo "=========================================="
 echo "ns-O-RAN-flexric Complete Setup"
 echo "=========================================="
 echo ""
+
+# Check for git submodules
+echo "Checking git submodules..."
+if [ ! -d "$PROJECT_DIR/e2sim-kpmv3" ] || [ ! -d "$PROJECT_DIR/mmwave-LENA-oran" ]; then
+    echo "⚠ Git submodules not found. Initializing..."
+    cd "$PROJECT_DIR"
+    git submodule update --init --recursive
+    echo "✓ Git submodules initialized"
+    echo ""
+fi
+
 echo "This script will:"
 echo "1. Install dependencies"
 echo "2. Install FlexRIC"
