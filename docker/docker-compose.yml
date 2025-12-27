@@ -1,0 +1,212 @@
+version: '3.8'
+
+services:
+  # InfluxDB - Time-series database for KPIs
+  influxdb:
+    image: influxdb:1.8-alpine
+    container_name: ns-oran-influxdb
+    ports:
+      - "127.0.0.1:8086:8086"
+    environment:
+      - INFLUXDB_DB=influx
+      - INFLUXDB_USER=admin
+      - INFLUXDB_PASSWORD=admin
+    volumes:
+      - influxdb_data:/var/lib/influxdb
+      - ./influxdb-init:/docker-entrypoint-initdb.d
+    command: sh -c "influxd & sleep 10 && influx -database influx -execute 'delete from /\w*/'; tail -f /dev/null"
+    networks:
+      - ns-oran-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8086/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # Grafana - Visualization platform
+  grafana:
+    image: grafana/grafana:8.0.2
+    container_name: ns-oran-grafana
+    depends_on:
+      influxdb:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - ns-oran-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # RIC-TaaP Studio GUI
+  gui:
+    build:
+      context: ../mmwave-LENA-oran/GUI
+      dockerfile: Dockerfile
+    container_name: ns-oran-gui
+    depends_on:
+      - influxdb
+    ports:
+      - "8000:8000"
+    environment:
+      - INFLUXDB_DATABASE=influx
+      - INFLUXDB_HOST=influxdb
+      - INFLUXDB_PASSWORD=admin
+      - INFLUXDB_PORT=8086
+      - INFLUXDB_USERNAME=admin
+      - NS3_HOST=ns3-simulator
+    volumes:
+      - ../mmwave-LENA-oran:/opt/ns3:ro
+    networks:
+      - ns-oran-network
+    restart: unless-stopped
+
+  # FlexRIC - RAN Intelligent Controller
+  flexric:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.flexric
+    container_name: ns-oran-flexric
+    ports:
+      - "36421:36421"
+    volumes:
+      - flexric_data:/opt/flexric/build
+    networks:
+      - ns-oran-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "netstat", "-an", "|", "grep", "-q", "36421"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    # Auto-start nearRT-RIC in background
+    command: ["/bin/bash", "-c", "cd /opt/flexric/build/examples/ric && ./nearRT-RIC > /tmp/flexric.log 2>&1 & tail -f /dev/null"]
+
+  # e2sim - E2 Termination
+  e2sim:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.e2sim
+    container_name: ns-oran-e2sim
+    depends_on:
+      - flexric
+    volumes:
+      - ../e2sim-kpmv3:/opt/e2sim
+      - e2sim_data:/opt/e2sim/build
+    networks:
+      - ns-oran-network
+    # Command will be set based on usage
+    command: ["/bin/bash", "-c", "sleep infinity"]
+
+  # ns-3 Simulator
+  ns3-simulator:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.ns3
+    container_name: ns-oran-ns3
+    depends_on:
+      influxdb:
+        condition: service_healthy
+      e2sim:
+        condition: service_started
+    volumes:
+      # Mount source code for development (overwrites ns3_data)
+      - ../mmwave-LENA-oran:/opt/ns3
+      # Use named volume for build artifacts (mounted to different path)
+      - ns3_build_data:/opt/ns3/cmake-cache
+    environment:
+      - INFLUXDB_HOST=influxdb
+      - INFLUXDB_PORT=8086
+      - INFLUXDB_USER=admin
+      - INFLUXDB_PASSWORD=admin
+      - E2TERM_IP=e2sim
+    networks:
+      - ns-oran-network
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+        reservations:
+          cpus: '2'
+          memory: 4G
+    # Keep container running and start gui_trigger in background
+    command: ["/bin/bash", "-c", "cd /opt/ns3 && python3 gui_trigger.py > /tmp/gui_trigger.log 2>&1 & tail -f /dev/null"]
+    healthcheck:
+      test: ["CMD", "test", "-f", "/opt/ns3/cmake-cache/ns3"]
+      interval: 60s
+      timeout: 30s
+      retries: 3
+      start_period: 300s
+
+  # GUI Trigger (runs in ns3-simulator container, but can be separate)
+  # Note: Currently runs inside ns3-simulator container
+  # Uncomment below to run as separate service if needed:
+  # gui-trigger:
+  #   build:
+  #     context: ..
+  #     dockerfile: docker/Dockerfile.ns3
+  #   container_name: ns-oran-gui-trigger
+  #   depends_on:
+  #     - influxdb
+  #     - ns3-simulator
+  #   volumes:
+  #     - ../mmwave-LENA-oran:/opt/ns3
+  #   environment:
+  #     - INFLUXDB_HOST=influxdb
+  #     - INFLUXDB_PORT=8086
+  #     - INFLUXDB_USER=admin
+  #     - INFLUXDB_PASSWORD=admin
+  #   networks:
+  #     - ns-oran-network
+  #   command: ["/bin/bash", "-c", "cd /opt/ns3 && python3 gui_trigger.py"]
+
+volumes:
+  influxdb_data:
+  grafana_data:
+  flexric_data:
+  e2sim_data:
+  ns3_build_data:  # Build artifacts for ns-3 (cmake-cache)
+
+networks:
+  ns-oran-network:
+    driver: bridge
+

@@ -1,0 +1,22 @@
+# config file version
+apiVersion: 1
+
+deleteDatasources:
+  - name: Influxdb
+    orgId: 1
+
+datasources:
+- name: InfluxDB
+  type: influxdb
+  access: proxy
+  orgId: 1
+  url: http://influxdb:8086
+  password: "admin"
+  user: "admin"
+  database: "influx"
+  basicAuth: false
+  isDefault: true
+  jsonData:
+    timeInterval: "5s"
+  version: 1
+  editable: false

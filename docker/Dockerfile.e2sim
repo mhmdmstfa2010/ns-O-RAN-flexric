@@ -1,0 +1,80 @@
+# Dockerfile for e2sim-kpmv3
+# Multi-stage build for smaller image size
+
+# Build stage
+FROM ubuntu:20.04 AS builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    git \
+    cmake \
+    libsctp-dev \
+    autoconf \
+    automake \
+    libtool \
+    bison \
+    flex \
+    libboost-all-dev \
+    dpkg-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /opt/e2sim
+
+# Copy e2sim source
+COPY e2sim-kpmv3/e2sim /opt/e2sim
+
+# Build e2sim
+RUN cd /opt/e2sim && \
+    # Remove any existing build directory to avoid CMake cache conflicts
+    rm -rf build && \
+    mkdir -p build && \
+    cd build && \
+    cmake .. -DDEV_PKG=1 -DLOG_LEVEL=2 && \
+    make package && \
+    # Extract package contents
+    dpkg-deb -x ./e2sim-dev_1.0.0_amd64.deb /opt/e2sim-install && \
+    echo "✓ e2sim built successfully"
+
+# Runtime stage
+FROM ubuntu:20.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install only runtime dependencies
+RUN apt-get update && apt-get install -y \
+    libsctp1 \
+    libboost-system1.71.0 \
+    libboost-filesystem1.71.0 \
+    libboost-thread1.71.0 \
+    libboost-chrono1.71.0 \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN useradd -m -u 1000 e2sim && \
+    mkdir -p /opt/e2sim && \
+    chown -R e2sim:e2sim /opt/e2sim
+
+# Copy installed files from builder
+COPY --from=builder --chown=e2sim:e2sim /opt/e2sim-install/usr/local /usr/local
+COPY --from=builder --chown=e2sim:e2sim /opt/e2sim/build /opt/e2sim/build
+
+# Update library cache
+RUN ldconfig
+
+WORKDIR /opt/e2sim/build
+
+# Switch to non-root user
+USER e2sim
+
+# Health check (check if e2sim binary exists)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD test -f /opt/e2sim/build/e2sim-dev_1.0.0_amd64.deb || exit 1
+
+# Default command (can be overridden)
+CMD ["/bin/bash"]
+
