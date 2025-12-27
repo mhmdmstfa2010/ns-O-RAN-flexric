@@ -7,7 +7,7 @@
 ## 📥 الخطوة 1: تنزيل المشروع
 
 ```bash
-git clone --recurse-submodules https://github.com/Orange-OpenSource/ns-O-RAN-flexric.git
+git clone --recurse-submodules https://github.com/mhmdmstfa2010/ns-O-RAN-flexric.git
 cd ns-O-RAN-flexric
 ```
 
