@@ -23,12 +23,17 @@ if [ ! -f "$FLEXRIC_DIR/build/examples/ric/nearRT-RIC" ]; then
 fi
 echo "✓ FlexRIC ready"
 
-# Check e2sim directory exists
-if [ ! -d "$PROJECT_DIR/e2sim-kpmv3" ]; then
-    echo "✗ Error: e2sim-kpmv3 directory not found"
-    echo "This is a git submodule. Please run:"
-    echo "  cd $PROJECT_DIR && git submodule update --init --recursive"
-    exit 1
+# Check e2sim directory exists or initialize if empty
+if [ ! -d "$PROJECT_DIR/e2sim-kpmv3" ] || [ -z "$(ls -A $PROJECT_DIR/e2sim-kpmv3 2>/dev/null)" ]; then
+    echo "⚠ e2sim-kpmv3 submodule not initialized. Initializing..."
+    cd "$PROJECT_DIR"
+    git submodule update --init --recursive e2sim-kpmv3
+    if [ $? -ne 0 ]; then
+        echo "✗ Error: Failed to initialize e2sim-kpmv3 submodule"
+        echo "Please run: cd $PROJECT_DIR && git submodule update --init --recursive"
+        exit 1
+    fi
+    echo "✓ e2sim-kpmv3 submodule initialized"
 fi
 
 # Check e2sim
@@ -38,12 +43,17 @@ if [ ! -f "$PROJECT_DIR/e2sim-kpmv3/e2sim/build/e2sim-dev_1.0.0_amd64.deb" ]; th
 fi
 echo "✓ e2sim ready"
 
-# Check ns-3 directory exists
-if [ ! -d "$PROJECT_DIR/mmwave-LENA-oran" ]; then
-    echo "✗ Error: mmwave-LENA-oran directory not found"
-    echo "This is a git submodule. Please run:"
-    echo "  cd $PROJECT_DIR && git submodule update --init --recursive"
-    exit 1
+# Check ns-3 directory exists or initialize if empty
+if [ ! -d "$PROJECT_DIR/mmwave-LENA-oran" ] || [ -z "$(ls -A $PROJECT_DIR/mmwave-LENA-oran 2>/dev/null)" ]; then
+    echo "⚠ mmwave-LENA-oran submodule not initialized. Initializing..."
+    cd "$PROJECT_DIR"
+    git submodule update --init --recursive mmwave-LENA-oran
+    if [ $? -ne 0 ]; then
+        echo "✗ Error: Failed to initialize mmwave-LENA-oran submodule"
+        echo "Please run: cd $PROJECT_DIR && git submodule update --init --recursive"
+        exit 1
+    fi
+    echo "✓ mmwave-LENA-oran submodule initialized"
 fi
 
 # Check ns-3

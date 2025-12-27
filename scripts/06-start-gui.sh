@@ -12,15 +12,21 @@ echo "=========================================="
 echo "Starting RIC-TaaP Studio GUI"
 echo "=========================================="
 
-# Check if mmwave-LENA-oran directory exists
-if [ ! -d "$NS3_DIR" ]; then
-    echo "✗ Error: mmwave-LENA-oran directory not found at $NS3_DIR"
-    echo ""
-    echo "This is a git submodule. Please run:"
-    echo "  cd $PROJECT_DIR"
-    echo "  git submodule update --init --recursive"
-    echo ""
-    exit 1
+# Check if mmwave-LENA-oran directory exists or is empty (submodule not initialized)
+if [ ! -d "$NS3_DIR" ] || [ -z "$(ls -A $NS3_DIR 2>/dev/null)" ]; then
+    echo "⚠ mmwave-LENA-oran submodule not initialized. Initializing..."
+    cd "$PROJECT_DIR"
+    git submodule update --init --recursive mmwave-LENA-oran
+    if [ $? -ne 0 ]; then
+        echo "✗ Error: Failed to initialize mmwave-LENA-oran submodule"
+        echo ""
+        echo "Please run manually:"
+        echo "  cd $PROJECT_DIR"
+        echo "  git submodule update --init --recursive"
+        echo ""
+        exit 1
+    fi
+    echo "✓ mmwave-LENA-oran submodule initialized"
 fi
 
 # Check if GUI directory exists

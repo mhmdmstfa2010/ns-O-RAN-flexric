@@ -11,15 +11,21 @@ echo "=========================================="
 echo "Building e2sim-kpmv3"
 echo "=========================================="
 
-# Check if e2sim-kpmv3 directory exists
-if [ ! -d "$PROJECT_DIR/e2sim-kpmv3" ]; then
-    echo "✗ Error: e2sim-kpmv3 directory not found at $PROJECT_DIR/e2sim-kpmv3"
-    echo ""
-    echo "This is a git submodule. Please run:"
-    echo "  cd $PROJECT_DIR"
-    echo "  git submodule update --init --recursive"
-    echo ""
-    exit 1
+# Check if e2sim-kpmv3 directory exists or is empty (submodule not initialized)
+if [ ! -d "$PROJECT_DIR/e2sim-kpmv3" ] || [ -z "$(ls -A $PROJECT_DIR/e2sim-kpmv3 2>/dev/null)" ]; then
+    echo "⚠ e2sim-kpmv3 submodule not initialized. Initializing..."
+    cd "$PROJECT_DIR"
+    git submodule update --init --recursive e2sim-kpmv3
+    if [ $? -ne 0 ]; then
+        echo "✗ Error: Failed to initialize e2sim-kpmv3 submodule"
+        echo ""
+        echo "Please run manually:"
+        echo "  cd $PROJECT_DIR"
+        echo "  git submodule update --init --recursive"
+        echo ""
+        exit 1
+    fi
+    echo "✓ e2sim-kpmv3 submodule initialized"
 fi
 
 # Check if e2sim subdirectory exists
